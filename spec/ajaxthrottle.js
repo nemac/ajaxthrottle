@@ -39,16 +39,7 @@ describe("ajaxthrottle", function () {
         expect(th).not.toBeUndefined();
     });
     it("should have correctly initialized properties", function () {
-        expect(typeOf(th.outstanding_requests)).toBe("array");
-        expect(th.outstanding_requests.length).toBe(0);
-        expect(typeOf(th.initiated_requests)).toBe("array");
-        expect(th.initiated_requests.length).toBe(0);
-        expect(typeOf(th.request_queue)).toBe("array");
-        expect(th.request_queue.length).toBe(0);
-        expect(typeof(th.ajax)).toBe("function");
-        expect(th.options.numRequestsPerTimePeriod).toBe(2);
-        expect(th.options.timePeriod).toBe(timePeriod);
-        expect(th.options.maxConcurrent).toBe(3);
+        expect(typeOf(th.ajax)).toBe("function");
     });
 
     it("should correctly execute a single ajax call", function () {
@@ -88,6 +79,7 @@ describe("ajaxthrottle", function () {
                     calls[i].spy();
                 },
                 complete : function () {
+                    console.log('request ' + i + ' done.');
                     calls[i].done = true;
                     calls[i].time = time();
                 }
@@ -138,5 +130,65 @@ describe("ajaxthrottle", function () {
             expect(spy).toHaveBeenCalled();
         });
     });
+
+    it("should correctly execute many requests a sequence", function () {
+
+        var timePeriod = 500,
+            th = $.ajaxthrottle({
+                numRequestsPerTimePeriod : 1,
+                timePeriod               : timePeriod,
+                maxConcurrent            : 0
+            });
+
+        var calls = [
+            { spy : jasmine.createSpy(), done : false },
+            { spy : jasmine.createSpy(), done : false },
+            { spy : jasmine.createSpy(), done : false },
+            { spy : jasmine.createSpy(), done : false },
+            { spy : jasmine.createSpy(), done : false },
+            { spy : jasmine.createSpy(), done : false },
+            { spy : jasmine.createSpy(), done : false },
+            { spy : jasmine.createSpy(), done : false },
+            { spy : jasmine.createSpy(), done : false },
+            { spy : jasmine.createSpy(), done : false }
+        ];
+
+        $.each(calls, function (i) {
+            th.ajax({
+                url : 'data.txt',
+                success : function (data) {
+                    calls[i].spy();
+                },
+                complete : function () {
+                    console.log('request ' + i + ' done.');
+                    calls[i].done = true;
+                    calls[i].time = time();
+                }
+            });
+        });
+
+        waitsFor(function () {
+            var done = true;
+            $.each(calls, function() {
+                if (!this.done) {
+                    done = false;
+                    return false;
+                }
+                return true;
+            });
+            return done;
+        });
+
+        runs(function () {
+            $.each(calls, function(i) {
+                expect(this.spy).toHaveBeenCalled();
+                if (i > 0) {
+                    expect(calls[i].time - calls[i-1].time >= 0.95*timePeriod).toBe(true);
+                }
+            });
+        });
+    });
+
+
 
 });
