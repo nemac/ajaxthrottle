@@ -34,6 +34,22 @@ previous one completes.
 as the promise interface (.done(), .fail(), .always() methods) in the
 return value of '$.ajax()'.
 
+Requirements
+------------
+
+Ajaxthrottle depends on jQuery and assumes that jQuery has been loaded
+before ajaxthrottle.js is loaded. Ajaxthrottle was written for jQuery 1.8.2;
+it will probably work with older versions of jQuery, but I haven't tested it.
+
+Installation
+------------
+
+Just grab the file *ajaxthrottle.js* from the *src* directory and load
+it in your page, after jQuery has been loaded.  (The stuff in the
+*lib* and *spec* directories is only used for development and testing
+of ajaxthrottle itself and isn't needed by applications that use
+ajaxthrottle.)
+
 Examples
 --------
 
