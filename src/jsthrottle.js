@@ -2,8 +2,8 @@
 
  q = ajaxQueue({
    numRequestsPerTimePeriod: N,
-   timePeriod: P,
-   maxConcurrent: M
+                 timePeriod: P,
+              maxConcurrent: M
  });
 
  q can be used to issue ajax requests, and it will queue them up as needed in order
@@ -27,7 +27,12 @@
             return (new Date()).getTime();
         };
         return {
-            options : options,
+            options : $.extend({
+                // default is one request at a time, no time limit
+                numRequestsPerTimePeriod : 0,
+                timePeriod               : 0,
+                maxConcurrent            : 1
+            }, options),
 
             // Array of outstanding requests; these are requests that have neither
             // completed nor timed out yet.  Each entry in this array is
@@ -46,8 +51,7 @@
             // the removal doesn't happen until another request comes in).
             initiated_requests : [],
 
-            // Array of requests waiting to be initiated; each entry in this
-            // array is a request object of the form passed to q.ajax() (or $.ajax()).
+            // Array of requests waiting to be initiated
             request_queue : [],
 
             // Purge the initiated requests list so that it doesn't contain any
@@ -82,9 +86,11 @@
             },
 
             process_queue : function() {
-                var that = this;
-                var now = time();
-                var delay = this.purge_initiated_requests(now);
+                var that = this,
+                    now = time(),
+                    delay, request, obj, deferred;
+
+                delay = this.purge_initiated_requests(now);
                 if (delay > 0 && this.initiated_requests.length >= options.numRequestsPerTimePeriod) {
                     // call process_queue() again after delay
                     setTimeout(function() {
@@ -97,73 +103,29 @@
                     // process_queue() will get called again when a request completes.
                 } else {
                     if (this.request_queue.length > 0) {
-                        var request = this.request_queue.shift(),
-                            obj  = {
-                                request : request,
-                                time    : time()
-                            },
-                            that = this;
-                        this.initiated_requests.push(obj);
-                        this.outstanding_requests.push(obj);
-                        $.ajax(request).always(function() {
-                            that.remove_outstanding_request(obj);
+                        request = this.request_queue.shift();
+                        request.time = time();
+
+                        this.initiated_requests.push(request);
+                        this.outstanding_requests.push(request);
+                        $.ajax(request.ajaxoptions).always(function() {
+                            that.remove_outstanding_request(request);
                             that.process_queue();
+                        }).done(function() {
+                            request.deferred.resolve.apply(request.deferred, arguments);
+                        }).fail(function() {
+                            request.deferred.reject.apply(request.deferred, arguments);
                         });
                     }
                 }
             },
 
-            ajax : function(request) {
-                this.request_queue.push(request);
+            ajax : function(ajaxoptions) {
+                var deferred = $.Deferred();
+                this.request_queue.push({ ajaxoptions : ajaxoptions, deferred : deferred });
                 this.process_queue();
+                return deferred.promise();
             }
         };
     };
 }(jQuery));
-
-
-//   (function($) {
-//   // jQuery on an empty object, we are going to use this as our Queue
-//   var ajaxQueue = $({});
-//   
-//   $.ajaxQueue = function( ajaxOpts ) {
-//       var jqXHR,
-//           dfd = $.Deferred(),
-//           promise = dfd.promise();
-//   
-//       // queue our ajax request
-//       ajaxQueue.queue( doRequest );
-//   
-//       // add the abort method
-//       promise.abort = function( statusText ) {
-//   
-//           // proxy abort to the jqXHR if it is active
-//           if ( jqXHR ) {
-//               return jqXHR.abort( statusText );
-//           }
-//   
-//           // if there wasn't already a jqXHR we need to remove from queue
-//           var queue = ajaxQueue.queue(),
-//               index = $.inArray( doRequest, queue );
-//   
-//           if ( index > -1 ) {
-//               queue.splice( index, 1 );
-//           }
-//   
-//           // and then reject the deferred
-//           dfd.rejectWith( ajaxOpts.context || ajaxOpts,
-//               [ promise, statusText, "" ] );
-//   
-//           return promise;
-//       };
-//   
-//       // run the actual query
-//       function doRequest( next ) {
-//           jqXHR = $.ajax( ajaxOpts )
-//               .done( dfd.resolve )
-//               .fail( dfd.reject )
-//               .then( next, next );
-//       }
-//   
-//       return promise;
-//   };

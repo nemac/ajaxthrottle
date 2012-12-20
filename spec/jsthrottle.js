@@ -114,4 +114,29 @@ describe("jsThrottle", function () {
         });
     });
 
+    it("ajax method should return a promise whose done() method is called", function () {
+        var spy = jasmine.createSpy();
+        var done = false;
+
+        var promise = th.ajax({
+            url : 'data.txt'
+        });
+
+        promise.done(function(data) {
+            spy();
+        });
+
+        promise.then(function () {
+            done = true;
+        });
+
+        waitsFor(function () {
+            return done;
+        });
+
+        runs(function () {
+            expect(spy).toHaveBeenCalled();
+        });
+    });
+
 });
