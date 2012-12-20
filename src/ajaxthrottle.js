@@ -22,7 +22,7 @@
  */
 
 (function($) {
-    window.jsthrottle = function(options) {
+    $.ajaxthrottle = function(options) {
         var time = function() {
             return (new Date()).getTime();
         };

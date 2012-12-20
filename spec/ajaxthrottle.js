@@ -1,6 +1,6 @@
 /*global describe, it, beforeEach, expect, xit, jasmine */
 
-describe("jsThrottle", function () {
+describe("ajaxthrottle", function () {
     "use strict";
 
     var typeOf = function(value) {
@@ -28,14 +28,14 @@ describe("jsThrottle", function () {
     var timePeriod = 1000;
     
     beforeEach(function () {
-        th = jsthrottle({
+        th = $.ajaxthrottle({
             numRequestsPerTimePeriod : 2,
             timePeriod               : timePeriod,
             maxConcurrent            : 3
         });
     });
 
-    it("should be able to create a jsthrottle", function () {
+    it("should be able to create an ajaxthrottle", function () {
         expect(th).not.toBeUndefined();
     });
     it("should have correctly initialized properties", function () {
